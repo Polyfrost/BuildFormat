@@ -3,6 +3,84 @@
 This repository contains shared build logic for Polyfrost projects. It is intended to be used as a git submodule in other projects. It is only intended for use within the Polyfrost organization, so support for other projects is not guaranteed.
 If you are having problems with this repository, please contact the Polyfrost team via [Discord](https://polyfrost.cc/discord).
 
+Some files may need to be symlinked or copied from this repository if they require being at the root of the file stucture to work.
+
+## Spotless + Checkstyle
+
+Do not use spotless if you are already using Kotlinter. Add the following to your `build.gradle.kts` file:
+
+```kotlin
+plugins {
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.checkstyle)
+}
+
+allprojects {
+    apply(plugin = rootProject.libs.plugins.spotless.get().pluginId)
+    apply(plugin = rootProject.libs.plugins.checkstyle.get().pluginId)
+
+    repositories {
+        mavenCentral()
+        maven("https://repo.polyfrost.org/releases")
+    }
+
+    checkstyle {
+        configFile = rootProject.file("format/checkstyle.xml") // replace this with your buildformat submodule path
+        toolVersion = rootProject.libs.plugins.checkstyle.get().pluginVersion
+    }
+
+    spotless {
+        java {
+            licenseHeaderFile(rootProject.file("HEADER")) // replace this with your header
+            removeUnusedImports()
+            importOrder('java', 'javax', '', 'net.minecraft', 'org.polyfrost')
+            indentWithTabs()
+            trimTrailingWhitespace()
+        }
+    }
+}
+
+spotless {
+    groovyGradle {
+        target 'src/**/*.gradle', '*.gradle', 'gradle/*.gradle'
+        greclipse()
+    }
+}
+```
+
+Feel free to add git hooks or manage the Spotless and Checkstyle hooks if wanted.
+
+## Kotlinter + Licenser
+
+Do not use Kotlinter if you are already using Spotless. Add the following to your `build.gradle.kts` file:
+
+```kotlin
+plugins {
+    alias(libs.plugins.kotlinter)
+    alias(libs.plugins.licenser)
+}
+
+allprojects {
+    apply(plugin = rootProject.libs.plugins.kotlinter.get().pluginId)
+    apply(plugin = rootProject.libs.plugins.licenser.get().pluginId)
+
+    repositories {
+        mavenCentral()
+        maven("https://repo.polyfrost.org/releases")
+    }
+
+    kotlinter {
+        ignoreFailures = false
+        reporters = arrayOf("checkstyle", "plain")
+    }
+
+    license {
+        rule("${rootProject.projectDir}/HEADER") // replace this with your hearder
+        include("**/*.kt")
+    }
+}
+```
+
 ## Dokka
 
 Add the following to your `build.gradle.kts` file to enable Dokka documentation generation:
@@ -13,17 +91,17 @@ import org.jetbrains.dokka.base.DokkaBaseConfiguration
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 
 plugins {
-    id("org.jetbrains.dokka") version "1.7.20"
+    alias(libs.plugins.dokka)
 }
 
 buildscript {
     dependencies {
-        classpath("org.jetbrains.dokka:dokka-base:1.7.20")
+        classpath(libs.dokka.base)
     }
 }
 
 allprojects {
-    apply(plugin = "org.jetbrains.dokka")
+    apply(plugin = rootProject.libs.plugins.dokka.get().pluginId)
 
     repositories {
         mavenCentral()
